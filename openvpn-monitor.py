@@ -499,8 +499,8 @@ class OpenvpnHtmlPrinter(object):
     def print_session_table_headers(vpn_mode):
 
         server_headers = ['Username / Hostname', 'VPN IP Address',
-                          'Remote IP Address', 'Location', 'Bytes In',
-                          'Bytes Out', 'Connected Since', 'Last Ping', 'Time Online']
+                          'Remote IP Address', 'Port', 'Location', 'Bytes In',
+                          'Bytes Out', 'Connected Since', 'Last Ping', 'Time Online', 'Action']
         client_headers = ['Tun-Tap-Read', 'Tun-Tap-Write', 'TCP-UDP-Read',
                           'TCP-UDP-Write', 'Auth-Read']
 
@@ -537,6 +537,8 @@ class OpenvpnHtmlPrinter(object):
         else:
             pingable = 'No'
 
+        host = vpn['host'] 
+        port = int(vpn['port'])
         connection = vpn['state']['connected']
         nclients = vpn['stats']['nclients']
         bytesin = vpn['stats']['bytesin']
@@ -565,7 +567,7 @@ class OpenvpnHtmlPrinter(object):
         output('<td>{0!s}</td>'.format(nclients))
         output('<td>{0!s} ({1!s})</td>'.format(bytesin, naturalsize(bytesin, binary=True)))
         output('<td>{0!s} ({1!s})</td>'.format(bytesout, naturalsize(bytesout, binary=True)))
-        output('<td>{0!s}</td>'.format(up_since.strftime('%d/%m/%Y %H:%M:%S')))
+        output('<td>{0!s}</td>'.format(up_since.strftime('%m/%d/%Y %H:%M:%S')))
         output('<td>{0!s}</td>'.format(local_ip))
         if vpn_mode == 'Client':
             output('<td>{0!s}</td>'.format(remote_ip))
@@ -573,10 +575,10 @@ class OpenvpnHtmlPrinter(object):
 
         if vpn_mode == 'Client' or nclients > 0:
             self.print_session_table_headers(vpn_mode)
-            self.print_session_table(vpn_mode, vpn_sessions)
+            self.print_session_table(vpn_mode, vpn_sessions, host, port)
             self.print_session_table_footer()
 
-        output('<span class="label label-default">{0!s}</span>'.format(vpn['version']))
+#        output('<span class="label label-default">{0!s}</span>'.format(vpn['version']))
         output('</div></div>')
 
     @staticmethod
@@ -588,7 +590,7 @@ class OpenvpnHtmlPrinter(object):
         output('<td>{0!s}</td>'.format(session['auth_read']))
 
     @staticmethod
-    def print_server_session(session):
+    def print_server_session(session, host, port):
 
         total_time = str(datetime.now() - session['connected_since'])[:-7]
         bytes_recv = session['bytes_recv']
@@ -596,6 +598,7 @@ class OpenvpnHtmlPrinter(object):
         output('<td>{0!s}</td>'.format(session['username']))
         output('<td>{0!s}</td>'.format(session['local_ip']))
         output('<td>{0!s}</td>'.format(session['remote_ip']))
+        output('<td>{0!s}</td>'.format(session['port']))
 
         if 'city' in session and 'country_name' in session:
             country = session['country_name']
@@ -613,21 +616,22 @@ class OpenvpnHtmlPrinter(object):
         output('<td>{0!s} ({1!s})</td>'.format(bytes_recv, naturalsize(bytes_recv, binary=True)))
         output('<td>{0!s} ({1!s})</td>'.format(bytes_sent, naturalsize(bytes_sent, binary=True)))
         output('<td>{0!s}</td>'.format(
-            session['connected_since'].strftime('%d/%m/%Y %H:%M:%S')))
+            session['connected_since'].strftime('%m/%d/%Y %H:%M:%S')))
         if 'last_seen' in session:
             output('<td>{0!s}</td>'.format(
-                session['last_seen'].strftime('%d/%m/%Y %H:%M:%S')))
+                session['last_seen'].strftime('%m/%d/%Y %H:%M:%S')))
         else:
-            output('<td>ERROR</td>')
-        output('<td>{0!s}</td>'.format(total_time))
+            output('<td>ERROR</td>') 
+        output('<td>{0!s}</td>'.format(total_time)
+        output('<td><a href="/cgi-bin/kill.php?vpnhost={2!s}&vpnport={3!s}&vpnclient={0!s}:{1!s}"><button type="button" >Disconnect</button></a> </td>'.format(session['remote_ip'], session['port'], host, port))
 
-    def print_session_table(self, vpn_mode, sessions):
+    def print_session_table(self, vpn_mode, sessions, host, port):
         for key, session in list(sessions.items()):
             output('<tr>')
             if vpn_mode == 'Client':
                 self.print_client_session(session)
             elif vpn_mode == 'Server':
-                self.print_server_session(session)
+                self.print_server_session(session, host, port)
             output('</tr>')
 
     def print_maps_html(self):
@@ -664,7 +668,7 @@ class OpenvpnHtmlPrinter(object):
         output('<div class="well well-sm">')
         output('Page automatically reloads every 5 minutes.')
         output('Last update: <b>{0!s}</b></div>'.format(
-            datetime.now().strftime('%a %d/%m/%Y %H:%M:%S')))
+            datetime.now().strftime('%a %m/%d/%Y %H:%M:%S')))
         output('</div></body></html>')
 
 

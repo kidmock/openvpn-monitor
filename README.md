@@ -1,5 +1,7 @@
 # OpenVPN-Monitor
 
+# THIS WILL NOT WORK WITH IPv6 or OpenVPN 2.4 See (https://community.openvpn.net/openvpn/ticket/664)
+
 
 ## Summary
 
